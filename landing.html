@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understand 3D Space</title>
+    <link rel="stylesheet" href="landing.css">
+</head>
+<body>
+    <div id="transition-overlay"></div>
+
+    <section class="hero">
+        <canvas id="hero-canvas"></canvas>
+        <div class="hero-content">
+            <h1 class="headline"><span class="shimmer-text">Understand 3D Space</span></h1>
+            <p class="subtitle">Interact with Translation, Scaling, Rotation, and Shearing in real time</p>
+            <a href="index.html" class="cta-btn" id="launch-btn">Launch Explorer &rarr;</a>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="feature-grid">
+            <div class="card" style="--card-accent: #8b5cf6;">
+                <div class="icon">&uarr;&rarr;</div>
+                <h2>Translation</h2>
+                <p>Move objects seamlessly through space along the X, Y, and Z axes without altering their original shape or orientation.</p>
+            </div>
+            <div class="card" style="--card-accent: #14b8a6;">
+                <div class="icon">&#8644;</div>
+                <h2>Scaling</h2>
+                <p>Expand or shrink objects uniformly or non-uniformly to alter their dimensions relative to the coordinate origin.</p>
+            </div>
+            <div class="card" style="--card-accent: #ec4899;">
+                <div class="icon">&#8635;</div>
+                <h2>Rotation</h2>
+                <p>Spin geometry dynamically around the pitch, yaw, and roll axes using orthogonal matrix transformations.</p>
+            </div>
+            <div class="card" style="--card-accent: #f59e0b;">
+                <div class="icon">&#11018;</div>
+                <h2>Shearing</h2>
+                <p>Displace vertices proportionally to create dynamic slanted projections while preserving the object's total volume.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 Designed by AI Assistant | Advanced Agentic Coding</p>
+    </footer>
+
+    <script>
+        // Page transition
+        const overlay = document.getElementById('transition-overlay');
+        const launchBtn = document.getElementById('launch-btn');
+        
+        // Fade in on load
+        window.addEventListener('load', () => {
+            setTimeout(() => overlay.classList.add('active'), 50);
+            setTimeout(() => overlay.classList.remove('active'), 400);
+        });
+
+        // Fade out on navigate
+        launchBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            overlay.classList.add('active');
+            setTimeout(() => window.location.href = 'index.html', 400);
+        });
+
+        // Hero Canvas 3D Wireframe Animation - Optimized for 120fps with cap
+        const canvas = document.getElementById('hero-canvas');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        let width, height, dpr, lastFrame = 0;
+
+        const verts = new Float32Array([-1,-1,-1, 1,-1,-1, 1,1,-1, -1,1,-1, -1,-1,1, 1,-1,1, 1,1,1, -1,1,1]);
+        const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+        const fov = 350, zOffset = 4;
+
+        function resize() {
+            dpr = devicePixelRatio || 1;
+            width = canvas.parentElement.clientWidth; height = canvas.parentElement.clientHeight;
+            canvas.width = width * dpr; canvas.height = height * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        let time = 0;
+        function draw(t) {
+            requestAnimationFrame(draw);
+            t = t || performance.now();
+            if (t - lastFrame < 1000 / 120) return;
+            lastFrame = t;
+            
+            time += 0.005;
+            ctx.clearRect(0, 0, width, height);
+
+            let s = Math.sin(time), c = Math.cos(time);
+            let s2 = Math.sin(time * 0.7), c2 = Math.cos(time * 0.7);
+
+            ctx.strokeStyle = 'rgba(139, 92, 246, 0.3)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+
+            for (var i = 0; i < edges.length; i++) {
+                var e = edges[i];
+                for (var j = 0; j < 2; j++) {
+                    var idx = e[j] * 3;
+                    var x = verts[idx], y = verts[idx + 1], z = verts[idx + 2];
+                    var x1 = x * c - z * s, z1 = x * s + z * c;
+                    var y2 = y * c2 - z1 * s2, z2 = y * s2 + z1 * c2;
+                    var zDist = z2 - zOffset;
+                    var px = (x1 / -zDist) * fov + width / 2;
+                    var py = (y2 / -zDist) * fov + height / 2;
+                    if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+            }
+            ctx.stroke();
+        }
+        draw();
+
+        // Intersection Observer for scroll animations with spring effect
+        const observer = new IntersectionObserver(function(entries) {
+            var toRemove = [];
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    toRemove.push(entry.target);
+                }
+            });
+            toRemove.forEach(function(el) { observer.unobserve(el); });
+        }, { threshold: 0.1, rootMargin: '50px' });
+
+        document.querySelectorAll('.card').forEach(function(el) { observer.observe(el); });
+    </script>
+</body>
+</html>

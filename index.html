@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Transformation Explorer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="transition-overlay"></div>
+    <div id="app">
+        <div id="canvas-container">
+            <canvas id="bg-canvas"></canvas>
+            <canvas id="canvas"></canvas>
+            <div id="fog-overlay"></div>
+            <div id="split-divider" style="display: none;"></div>
+            <div id="floating-annotation"></div>
+            <button id="toggle-panel">☰</button>
+        </div>
+        
+        <div id="control-panel">
+            <header>
+                <h1>3D Transforms</h1>
+                <div class="header-actions">
+                    <button id="btn-export" class="icon-btn" title="Export Matrix">💾</button>
+                    <button id="btn-reset" class="icon-btn" title="Reset">🔄</button>
+                </div>
+            </header>
+
+            <div class="toolbar">
+                <select id="shape-select">
+                    <option value="cube">Cube</option>
+                    <option value="pyramid">Pyramid</option>
+                    <option value="octahedron">Octahedron</option>
+                    <option value="sphere">Sphere</option>
+                </select>
+                <div class="presets-gallery">
+                    <button class="preset-btn" data-preset="stretchX" title="sx=2.5, sy=1.0, sz=1.0">Stretch X</button>
+                    <button class="preset-btn" data-preset="spinY" title="ry=45°">Spin Y</button>
+                    <button class="preset-btn" data-preset="skewXY" title="shxy=1.2, shyx=0.8">Skew XY</button>
+                    <button class="preset-btn" data-preset="mirrorZ" title="sz=-1.0">Mirror Z</button>
+                    <button class="preset-btn" data-preset="iso" title="rx=35°, ry=45°">Isometric</button>
+                    <button class="preset-btn" data-preset="chaos" title="sx=1.5, ry=30°, shxy=0.6, tx=0.5">Chaos</button>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="translation" style="--accent: #8b5cf6;">Translate</button>
+                <button class="tab-btn" data-tab="scaling" style="--accent: #14b8a6;">Scale</button>
+                <button class="tab-btn" data-tab="rotation" style="--accent: #ec4899;">Rotate</button>
+                <button class="tab-btn" data-tab="shearing" style="--accent: #f59e0b;">Shear</button>
+                <div class="tab-indicator-bar"></div>
+            </div>
+            <div class="tab-content-wrapper">
+                <div class="tab-content active" id="tab-translation">
+                <div class="tab-desc">
+                    <p>Moves every vertex by a constant vector. It is the only affine transform that is <strong>not linear</strong> (has no fixed point at the origin).</p>
+                    <p class="analogy"><em>Analogy:</em> Sliding a book across a table.</p>
+                    <div class="before-after">
+                        <div><strong>Before:</strong><br>[0,0,0]<br>[1,1,1]</div>
+                        <div>&rarr;</div>
+                        <div><strong>After (tx=2):</strong><br>[2,0,0]<br>[3,1,1]</div>
+                    </div>
+                    <div class="learn-more">
+                        <button class="learn-more-btn">Learn More <span>▼</span></button>
+                        <div class="learn-more-content">
+                            <code>[1 0 0 tx]<br>[0 1 0 ty]<br>[0 0 1 tz]<br>[0 0 0 1] * v</code>
+                        </div>
+                    </div>
+                </div>
+                <div class="sliders">
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label><span>tx</span> <span id="tx-val" class="val">0.0</span></label>
+                            <canvas class="mini-canvas" id="mini-tx" width="40" height="40"></canvas>
+                        </div>
+                        <input type="range" id="tx" min="-3" max="3" step="0.1" value="0">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label><span>ty</span> <span id="ty-val" class="val">0.0</span></label>
+                            <canvas class="mini-canvas" id="mini-ty" width="40" height="40"></canvas>
+                        </div>
+                        <input type="range" id="ty" min="-3" max="3" step="0.1" value="0">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label><span>tz</span> <span id="tz-val" class="val">0.0</span></label>
+                            <canvas class="mini-canvas" id="mini-tz" width="40" height="40"></canvas>
+                        </div>
+                        <input type="range" id="tz" min="-3" max="3" step="0.1" value="0">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scaling -->
+            <div class="tab-content" id="tab-scaling">
+                <div class="tab-desc">
+                    <p>Expands or shrinks objects. Can be <strong>uniform</strong> (same on all axes) or <strong>non-uniform</strong>. Scaling by -1 produces a reflection.</p>
+                    <p class="analogy"><em>Analogy:</em> Zooming in on a digital map.</p>
+                    <div class="before-after">
+                        <div><strong>Before:</strong><br>[1,1,1]<br>[-1,-1,-1]</div>
+                        <div>&rarr;</div>
+                        <div><strong>After (sx=2):</strong><br>[2,1,1]<br>[-2,-1,-1]</div>
+                    </div>
+                    <div class="learn-more">
+                        <button class="learn-more-btn">Learn More <span>▼</span></button>
+                        <div class="learn-more-content">
+                            <code>[sx 0 0 0]<br>[0 sy 0 0]<br>[0  0 sz 0]<br>[0  0  0 1] * v</code>
+                        </div>
+                    </div>
+                </div>
+                <div class="sliders">
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label><span>sx</span> <span id="sx-val" class="val">1.0</span></label>
+                            <canvas class="mini-canvas" id="mini-sx" width="40" height="40"></canvas>
+                        </div>
+                        <input type="range" id="sx" min="0.1" max="3" step="0.1" value="1">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label><span>sy</span> <span id="sy-val" class="val">1.0</span></label>
+                            <canvas class="mini-canvas" id="mini-sy" width="40" height="40"></canvas>
+                        </div>
+                        <input type="range" id="sy" min="0.1" max="3" step="0.1" value="1">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label><span>sz</span> <span id="sz-val" class="val">1.0</span></label>
+                            <canvas class="mini-canvas" id="mini-sz" width="40" height="40"></canvas>
+                        </div>
+                        <input type="range" id="sz" min="0.1" max="3" step="0.1" value="1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rotation -->
+            <div class="tab-content" id="tab-rotation">
+                <div class="tab-desc">
+                    <p>Spins geometry dynamically. Rotation matrices are <strong>orthogonal</strong> (R⁻¹ = Rᵀ) and strictly preserve distances. Euler angles can suffer from gimbal lock.</p>
+                    <p class="analogy"><em>Analogy:</em> Spinning a globe on its axis.</p>
+                    <div class="before-after">
+                        <div><strong>Before:</strong><br>[1,0,0]<br>[0,1,0]</div>
+                        <div>&rarr;</div>
+                        <div><strong>After (rz=90&deg;):</strong><br>[0,1,0]<br>[-1,0,0]</div>
+                    </div>
+                    <div class="learn-more">
+                        <button class="learn-more-btn">Learn More <span>▼</span></button>
+                        <div class="learn-more-content">
+                            <code>[cos -sin 0 0]<br>[sin  cos 0 0]<br>[  0    0 1 0]<br>[  0    0 0 1] * v (Z)</code>
+                        </div>
+                    </div>
+                </div>
+                <div class="sliders">
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label><span>Pitch (X)</span> <span id="rx-val" class="val">0°</span></label>
+                            <canvas class="mini-canvas" id="mini-rx" width="40" height="40"></canvas>
+                        </div>
+                        <input type="range" id="rx" min="-180" max="180" step="1" value="0">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label><span>Yaw (Y)</span> <span id="ry-val" class="val">0°</span></label>
+                            <canvas class="mini-canvas" id="mini-ry" width="40" height="40"></canvas>
+                        </div>
+                        <input type="range" id="ry" min="-180" max="180" step="1" value="0">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label><span>Roll (Z)</span> <span id="rz-val" class="val">0°</span></label>
+                            <canvas class="mini-canvas" id="mini-rz" width="40" height="40"></canvas>
+                        </div>
+                        <input type="range" id="rz" min="-180" max="180" step="1" value="0">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shearing -->
+            <div class="tab-content" id="tab-shearing">
+                <div class="tab-desc">
+                    <p>Displaces points proportionally to their distance from an axis. It <strong>preserves volume</strong> (matrix determinant = 1).</p>
+                    <p class="analogy"><em>Analogy:</em> Pushing the top of a stack of cards sideways.</p>
+                    <div class="before-after">
+                        <div><strong>Before:</strong><br>[0,1,0]<br>[1,1,0]</div>
+                        <div>&rarr;</div>
+                        <div><strong>After (shxy=1):</strong><br>[1,1,0]<br>[2,1,0]</div>
+                    </div>
+                    <div class="learn-more">
+                        <button class="learn-more-btn">Learn More <span>▼</span></button>
+                        <div class="learn-more-content">
+                            <code>[1 shxy shxz 0]<br>[shyx 1 shyz 0]<br>[shzx shzy 1 0]<br>[0    0    0 1] * v</code>
+                        </div>
+                    </div>
+                </div>
+                <div class="sliders">
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label><span>shxy</span> <span id="shxy-val" class="val">0.0</span></label>
+                            <canvas class="mini-canvas" id="mini-shxy" width="40" height="40"></canvas>
+                        </div>
+                        <input type="range" id="shxy" min="-2" max="2" step="0.1" value="0">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label><span>shxz</span> <span id="shxz-val" class="val">0.0</span></label>
+                            <canvas class="mini-canvas" id="mini-shxz" width="40" height="40"></canvas>
+                        </div>
+                        <input type="range" id="shxz" min="-2" max="2" step="0.1" value="0">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label><span>shyx</span> <span id="shyx-val" class="val">0.0</span></label>
+                            <canvas class="mini-canvas" id="mini-shyx" width="40" height="40"></canvas>
+                        </div>
+                        <input type="range" id="shyx" min="-2" max="2" step="0.1" value="0">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label><span>shzx</span> <span id="shzx-val" class="val">0.0</span></label>
+                            <canvas class="mini-canvas" id="mini-shzx" width="40" height="40"></canvas>
+                        </div>
+                        <input type="range" id="shzx" min="-2" max="2" step="0.1" value="0">
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <div class="matrix-container">
+                <div class="matrix" id="matrix-display"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Fade in on load
+        window.addEventListener('load', function() {
+            var overlay = document.getElementById('transition-overlay');
+            if (overlay) {
+                setTimeout(function() { overlay.classList.add('active'); }, 50);
+                setTimeout(function() { overlay.classList.remove('active'); }, 450);
+            }
+        });
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>
